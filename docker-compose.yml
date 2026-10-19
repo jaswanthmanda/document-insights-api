@@ -1,0 +1,64 @@
+services:
+  api:
+    build: .
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    environment:
+      MONGODB_URL: mongodb://mongodb:27017
+      MONGODB_DATABASE: document_insights
+      REDIS_URL: redis://redis:6379/0
+      CACHE_TTL_SECONDS: 3600
+      PROCESSING_MIN_SECONDS: 10
+      PROCESSING_MAX_SECONDS: 30
+      WORKER_FAILURE_RATE: 0.10
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: .
+    command: python -m app.worker
+    environment:
+      MONGODB_URL: mongodb://mongodb:27017
+      MONGODB_DATABASE: document_insights
+      REDIS_URL: redis://redis:6379/0
+      CACHE_TTL_SECONDS: 3600
+      PROCESSING_MIN_SECONDS: 10
+      PROCESSING_MAX_SECONDS: 30
+      WORKER_FAILURE_RATE: 0.10
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  mongo_data:
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.29.0.0/16
