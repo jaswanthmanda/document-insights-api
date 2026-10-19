@@ -109,7 +109,7 @@ Checks MongoDB and Redis connectivity.
 
 ## Testing
 
-### Run tests locally on Windows (PowerShell)
+### Run tests locally on Windows (PowerShell) or follow the equivalent steps on Ubuntu/Linux
 
 1. Copy the example environment file:
 
