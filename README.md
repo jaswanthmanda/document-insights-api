@@ -1,3 +1,4 @@
+
 # Document Insights API
 
 An asynchronous document processing service built with Python, FastAPI, MongoDB, Redis, and Docker Compose. It simulates document summarization without requiring an external AI service.
@@ -36,7 +37,9 @@ An asynchronous document processing service built with Python, FastAPI, MongoDB,
 docker compose up --build -d
 ```
 
-Open the interactive API documentation at [http://localhost:8000/docs](http://localhost:8000/docs).
+Open the interactive API documentation:
+
+[http://localhost:8000/docs](http://localhost:8000/docs)
 
 ### Check service health
 
@@ -56,7 +59,7 @@ MongoDB data is stored in a named Docker volume. To remove the volume and its pe
 docker compose down -v
 ```
 
-> **Note:** The command above permanently removes Compose-managed volumes, including stored MongoDB data.
+> **Note:** This command permanently removes Compose-managed volumes, including stored MongoDB data.
 
 ## API endpoints
 
@@ -106,13 +109,35 @@ Checks MongoDB and Redis connectivity.
 
 ## Testing
 
-Install the requirements and start MongoDB and Redis. Configure `.env` to use `localhost` for the MongoDB and Redis URLs when running tests directly from the host machine.
+### Run tests locally on Windows (PowerShell)
 
-Run the test suite:
+1. Copy the example environment file:
 
-```bash
-python -m pytest -v
-```
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+
+2. Update the MongoDB and Redis URLs in `.env` to use `localhost`.
+
+3. Activate the virtual environment:
+
+   ```powershell
+   .\venv\Scripts\Activate.ps1
+   ```
+
+4. Set `PYTHONPATH` to the project root:
+
+   ```powershell
+   $env:PYTHONPATH = (Get-Location).Path
+   ```
+
+5. Run the test suite:
+
+   ```powershell
+   pytest -v
+   ```
+
+**Prerequisites:** Ensure MongoDB and Redis are running before executing the tests.
 
 ## Trade-offs and future improvements
 
