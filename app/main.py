@@ -9,10 +9,10 @@ from fastapi import FastAPI, HTTPException, Query, Request, status
 from redis.exceptions import RedisError
 
 from app.database import connect_services, close_services
-from app.database import connect_services, close_services
 from app import database
-# from app.database import db, redis_client
-from app.config import settings
+
+# from app.database import db, database.redis_client
+# from app.config import settings
 from app.schemas import (
     DocumentAccepted,
     DocumentCreate,
@@ -77,7 +77,7 @@ app = FastAPI(
 async def health():
     try:
         await database.db.command("ping")
-        await redis_client.ping()
+        await database.redis_client.ping()
         return {"status": "ok", "mongodatabase.db": "ok", "redis": "ok"}
     except Exception as exc:
         logger.exception("Health check failed")
@@ -93,16 +93,14 @@ async def health():
     status_code=status.HTTP_201_CREATED,
 )
 async def submit_document(payload: DocumentCreate):
-    content_hash = hashlib.sha256(
-        payload.content.encode("utf-8")
-    ).hexdigest()
+    content_hash = hashlib.sha256(payload.content.encode("utf-8")).hexdigest()
     cache_key = f"summary:{content_hash}"
     now = datetime.now(timezone.utc)
 
     # Cache is an optimization: if reading it fails, proceed uncached.
     cached_summary = None
     try:
-        cached = await redis_client.get(cache_key)
+        cached = await database.redis_client.get(cache_key)
         if cached:
             cached_summary = json.loads(cached)
     except (RedisError, ValueError):
@@ -131,9 +129,7 @@ async def submit_document(payload: DocumentCreate):
 
     # Redis is mandatory for enforcing the concurrency limit.
     try:
-        reserved = await redis_client.eval(
-            RESERVE_JOB, 1, active_key, 3, 86400
-        )
+        reserved = await database.redis_client.eval(RESERVE_JOB, 1, active_key, 3, 86400)
     except RedisError as exc:
         logger.exception("Rate limiter unavailable")
         raise HTTPException(
@@ -164,12 +160,12 @@ async def submit_document(payload: DocumentCreate):
         result = await database.db.documents.insert_one(doc)
         inserted_id = result.inserted_id
 
-        await redis_client.rpush(QUEUE_KEY, str(inserted_id))
+        await database.redis_client.rpush(QUEUE_KEY, str(inserted_id))
     except Exception as exc:
         logger.exception("Document submission failed")
         if inserted_id is not None:
             await database.db.documents.delete_one({"_id": inserted_id})
-        await redis_client.eval(RELEASE_JOB, 1, active_key)
+        await database.redis_client.eval(RELEASE_JOB, 1, active_key)
         raise HTTPException(
             status_code=503,
             detail="Could not queue document; retry later",
@@ -203,7 +199,8 @@ async def list_documents(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
     document_status: str | None = Query(
-        None, alias="status",
+        None,
+        alias="status",
         pattern="^(queued|processing|completed|failed)$",
     ),
 ):

@@ -18,7 +18,8 @@ async def connect_services():
         settings.redis_url,
         decode_responses=True,
         socket_connect_timeout=3,
-        socket_timeout=5,
+        socket_timeout=None,
+        health_check_interval=30,
     )
 
     # Fail startup if either required service is unavailable.

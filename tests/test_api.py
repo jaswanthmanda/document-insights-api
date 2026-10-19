@@ -21,7 +21,7 @@ def test_document_api_flow():
             transport = httpx.ASGITransport(app=app)
             async with httpx.AsyncClient(
                 transport=transport,
-                base_url="http://test",
+                base_url="http://localhost:8000",
             ) as client:
                 # Health check
                 response = await client.get("/health")
@@ -75,7 +75,7 @@ def test_document_api_flow():
                 )
                 assert response.status_code == 422
 
-                 # Cache hit returns a completed document immediately.
+                # Cache hit returns a completed document immediately.
                 cached_content = "Previously summarized content"
                 content_hash = hashlib.sha256(
                     cached_content.encode("utf-8")
